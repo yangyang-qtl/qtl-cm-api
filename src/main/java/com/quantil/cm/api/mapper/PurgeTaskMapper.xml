@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.quantil.cm.api.mapper.PurgeTaskMapper">
+
+   <select id="queryPurgeTask"  resultType="com.quantil.cm.api.domain.PurgeTask">
+    		select *
+    		from purge_task
+  	</select>
+    
+    
+    <select id="queryPurgeTaskWithCondition"  resultType="com.quantil.cm.api.domain.PurgeTask">
+    		select *
+    		from purge_task
+    	<where>
+	         <if test="startdate != null and startdate != ''">
+	           AND commit_time &gt;=  #{startdate}
+	         </if>
+	          <if test="enddate != null and enddate != ''">
+	           AND commit_time &lt;=  #{enddate}
+	         </if>
+    	</where>
+    	 <if test="sortBy != null and sortBy != ''">
+    	 	order by #{sortBy}
+    	 </if>
+    	  <if test="sortOrder != null and sortOrder != ''">
+    	 	#{sortOrder}
+    	 </if>
+    	 <if test="limit != null and limit != 0">
+    	 	limit #{limit}
+    	 </if>
+    	 <if test="offset != null and offset != 0">
+    	 	offset #{offset}
+    	 </if>
+  	</select>
+  	
+  	 <select id="queryPurgeTaskForPortal"  resultType="com.quantil.cm.api.domain.PurgeTask">
+    		select *
+    		from purge_task
+    	<where>
+	         <if test="name != null and name != ''">
+	           AND name = #{name}
+	         </if>
+	         <if test="target != null and target != ''">
+	           AND target = #{target}
+	         </if>
+	         <if test="action != null and action != ''">
+	           AND action = #{action}
+	         </if>
+	          <if test="customerName != null and customerName != ''">
+	           AND customer_name = #{customerName}
+	         </if>
+    	</where>
+    	
+  	</select>
+</mapper>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.quantil.cm.api.mapper.PurgeTaskContentMapper">
+
+    <select id="getPurgeTaskContentByTaskId" resultType="com.quantil.cm.api.domain.PurgeTaskContent">
+        SELECT *
+          FROM purge_task_content
+          WHERE purge_task_id = #{purgeTaskId}
+    </select>
+    
+</mapper>
