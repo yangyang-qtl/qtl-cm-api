@@ -21,6 +21,8 @@ public class PurgeRequestDTO {
     private double successRate;
     
     private String finishTime;
+    
+    private String submissionTime;
 
     public String getId() {
         return id;
@@ -93,6 +95,13 @@ public class PurgeRequestDTO {
     public void setFinishTime(String finishTime) {
         this.finishTime = finishTime;
     }
+
+    public String getSubmissionTime() {
+        return submissionTime;
+    }
+
+    public void setSubmissionTime(String submissionTime) {
+        this.submissionTime = submissionTime;
+    }
     
-  
 }

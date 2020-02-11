@@ -41,6 +41,7 @@ import com.quantil.cm.api.dto.PurgeTaskPortalDTO;
 import com.quantil.cm.api.dto.PurgeTaskQueryDTO;
 import com.quantil.cm.api.dto.SubSummaryDTO;
 import com.quantil.cm.api.dto.TaskDTO;
+import com.quantil.cm.api.framework.exception.BadRequestException;
 import com.quantil.cm.api.framework.exception.NoFoundException;
 import com.quantil.cm.api.framework.util.BeanCopyUtil;
 import com.quantil.cm.api.framework.util.UuidUtil;
@@ -67,15 +68,20 @@ public class PurgeTaskService {
     private final static String CUSTOMER_NAME = "purge-customer-name";
     private final static String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
     private final static String DATE_FORMAT_RFC = "yyyy-MM-dd'T'HH:mm:ssZ";
-    private final static String WRONG_ID = "The specified purgeId does not exist! ";
-    private final static String WRONG_OFFSET = "The offset must be a valid positive integer";
-    private final static String WRONG_LIMIT = "The value of limit should be between 1 and 200";
-    private final static String DATEFORM_LIMIT = "Datefrom is invalid";
+    private final static String FROM = "dateFrom";
+    private final static String TO = "dateTo";
+    private final static String ID_EXCEPTION = "PurgeIdNoFound";
+    private final static String OFFSET_EXCEPTION = "InvalidListOffset";
+    private final static String LIMIT_EXCEPTION = "InvalidListLimit";
+    private final static String FROM_EXCEPTION = "InvalidDateFrom";
+    private final static String TO_EXCEPTION = "InvalidDateTo";
+    private final static String SORT_EXCEPTION = "InvalidSortField";
+    private final static String ORDER_EXCEPTION = "InvalidOrder";
+    private final static String COMMIT_TIME = "commit_time";
+    private final static String ASC = "asc";
+    private final static String DESC = "desc";
     
-    
-    private static Map<String, String> ORDERMAP = new HashMap<String, String> (){/**
-         * 
-         */
+    private static Map<String, String> ORDERMAP = new HashMap<String, String> (){
         private static final long serialVersionUID = 1L;
 
     {
@@ -184,7 +190,7 @@ public class PurgeTaskService {
         
         PurgeTask purgeTask = purgeTaskMapper.selectById(taskId);
         if(null == purgeTask){
-            throw new NoFoundException(WRONG_ID + taskId);
+            throw new NoFoundException(ID_EXCEPTION);
         }
         purgeStatusDTO.setAction(purgeTask.getAction());
         purgeStatusDTO.setName(purgeTask.getName());
@@ -244,9 +250,9 @@ public class PurgeTaskService {
             taskDTO.setStatus(purgeTask.getStatus());
             taskDTO.setSuccessRate(countSuccessRate(purgeTask.getSuccessCnt(), purgeTask.getTotalCnt()));
             PurgeTaskStatus purgeTaskStatus = purgeTaskStatusMapper.getPurgeTaskStatusByTaskId(purgeTask.getId());
+            List<MessageDTO> messageList = new ArrayList<MessageDTO> ();
             if(null != purgeTaskStatus){
                 if(!StringUtils.isEmpty(purgeTaskStatus.getReason())){
-                    List<MessageDTO> messageList = new ArrayList<MessageDTO> ();
                     List<ErrorDTO> errorList = JSONObject.parseArray(purgeTaskStatus.getReason(), ErrorDTO.class);
                     for(ErrorDTO error : errorList){
                         MessageDTO message = new MessageDTO();
@@ -254,9 +260,9 @@ public class PurgeTaskService {
                         message.setDetails(error.getErrorMessage());
                         messageList.add(message);
                     }
-                    taskDTO.setMessage(messageList);
                 }
             }
+            taskDTO.setMessage(messageList);
             if(STAGING.equals(purgeTask.getTarget())){
                 stagingTaskList.add(taskDTO);
             }
@@ -292,28 +298,25 @@ public class PurgeTaskService {
      * @param sortOrder
      * @return
      */
-    public PurgeRequestEntityDTO getPurgeRequest(String startdate, String enddate, int offset, int limit, String sortBy, String sortOrder) {
-        if(offset < 0){
-            throw new NoFoundException(WRONG_OFFSET);
-        }
-        if(limit < 1 || limit >200){
-            throw new NoFoundException(WRONG_LIMIT);
-        }
-        
+    public PurgeRequestEntityDTO getPurgeRequest(String startdate, String enddate, String offsetTpl, String limitTpl, String sortBy, String sortOrder) {
+        int offset = offsetToInteger(offsetTpl);
+        int limit = limitToInteger(limitTpl);
         PurgeRequestEntityDTO purgeRequestEntityDTO = new PurgeRequestEntityDTO();
         List<PurgeRequestDTO> purgeRequestDTOList = new ArrayList<PurgeRequestDTO>();
-        String OrderName = ORDERMAP.get(sortBy);
-        List<PurgeTask> purgeTaskList = purgeTaskMapper.queryPurgeTaskWithCondition(RFCFormatDate(startdate), RFCFormatDate(enddate), offset, limit, OrderName, sortOrder);
+        String OrderName = findSort(sortBy);
+        String order = findOrder(sortOrder);
+        List<PurgeTask> purgeTaskList = purgeTaskMapper.queryPurgeTaskWithCondition(RFCFormatDate(startdate, FROM), RFCFormatDate(enddate, TO), offset, limit, OrderName, order);
         if(!ObjectUtils.isEmpty(purgeTaskList)){
             purgeRequestEntityDTO.setCount(purgeTaskList.size());
             for(PurgeTask purgeTask : purgeTaskList){
                 PurgeRequestDTO purgeRequest = new PurgeRequestDTO();
                 purgeRequest.setId(purgeTask.getId());
                 purgeRequest.setFinishTime(formatDate(purgeTask.getFinishTime()));
+                
                 purgeRequest.setStatus(purgeTask.getStatus());
                 purgeRequest.setSuccessRate(countSuccessRate(purgeTask.getSuccessCnt(), purgeTask.getTotalCnt()));
                 purgeRequest.setTarget(purgeTask.getTarget());
-                
+                purgeRequest.setSubmissionTime(formatDate(purgeTask.getCommitTime()));
                 PurgeTaskStatistics purgeTaskStatistics = purgeTaskStatisticsMapper.selectStatisticsByTaskId(purgeTask.getId());
                 if(null != purgeTaskStatistics){
                     purgeRequest.setCacheKeyEntries(purgeTaskStatistics.getCacheKeyEntries());
@@ -343,7 +346,7 @@ public class PurgeTaskService {
         PurgeSummaryDTO purgeSummaryDTO = new PurgeSummaryDTO();
         SubSummaryDTO stagingSummary = new SubSummaryDTO();
         SubSummaryDTO productionSummary = new SubSummaryDTO();
-        List<PurgeTask> purgeTaskList = purgeTaskMapper.queryPurgeTaskWithCondition(RFCFormatDate(startdate), RFCFormatDate(enddate), 0, 0, null, null);
+        List<PurgeTask> purgeTaskList = purgeTaskMapper.queryPurgeTaskWithCondition(RFCFormatDate(startdate, FROM), RFCFormatDate(enddate, TO), 0, 100, COMMIT_TIME, ASC);
         purgeSummaryDTO.setRequests(purgeTaskList.size());
         for(PurgeTask purgeTask : purgeTaskList){
             PurgeTaskStatistics purgeTaskStatistics = purgeTaskStatisticsMapper.selectStatisticsByTaskId(purgeTask.getId());
@@ -468,14 +471,7 @@ public class PurgeTaskService {
      * @param time
      * @return
      */
-    private String RFCFormatDate(String time){
-        /*String res = "";
-        if(!StringUtils.isEmpty(time)){
-            DateTime dateTime  = new DateTime(time);
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            res = simpleDateFormat.format(dateTime.toDate());
-        }
-        return res;*/
+    private String RFCFormatDate(String time, String dateType){
         String res = "";
         try {
             if(!StringUtils.isEmpty(time)){
@@ -485,9 +481,71 @@ public class PurgeTaskService {
             }
           }
           catch(Exception e) {
-              throw new NoFoundException(DATEFORM_LIMIT);
+              if(FROM.equals(dateType)){
+                  throw new BadRequestException(FROM_EXCEPTION); 
+              }else{
+                  throw new BadRequestException(TO_EXCEPTION); 
+              }
+              
           }
         return res;
         
     }
+    
+    private int offsetToInteger(String offsetTpl){
+        int  offset = 0;
+        if(!StringUtils.isEmpty(offsetTpl)){
+            try{
+                offset = Integer.parseInt(offsetTpl);  
+            }catch(Exception e){
+                throw new BadRequestException(OFFSET_EXCEPTION); 
+            }
+            
+        }
+        if(offset < 0){
+            throw new BadRequestException(OFFSET_EXCEPTION);
+        }
+        return offset;
+    }
+    
+    private int limitToInteger(String limitTpl){
+        int  limit = 100;
+        if(!StringUtils.isEmpty(limitTpl)){
+            try{
+                limit = Integer.parseInt(limitTpl);  
+            }catch(Exception e){
+                throw new BadRequestException(LIMIT_EXCEPTION); 
+            }
+            
+        }
+        if(limit < 1 || limit >200){
+            throw new BadRequestException(LIMIT_EXCEPTION);
+        }
+        return limit;
+    }
+    
+    private String findOrder(String orderBy){
+        if(StringUtils.isEmpty(orderBy)){
+            return ASC;
+        }
+        if(ASC.equals(orderBy) || DESC.equals(orderBy)){
+            return orderBy;
+        }else{
+            throw new BadRequestException(ORDER_EXCEPTION);
+        }
+    }
+    
+    private String findSort(String sortName){
+        if(StringUtils.isEmpty(sortName)){
+            return COMMIT_TIME;
+        }
+        String OrderName = ORDERMAP.get(sortName);
+        if(!StringUtils.isEmpty(OrderName)){
+            return OrderName;
+        }else{
+            throw new BadRequestException(SORT_EXCEPTION);
+        }
+    }
+    
+    
 }

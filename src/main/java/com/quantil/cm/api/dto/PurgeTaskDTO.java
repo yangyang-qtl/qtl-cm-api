@@ -8,6 +8,8 @@ import javax.validation.constraints.Pattern;
 
 
 public class PurgeTaskDTO {
+    private final static String ACTION_EXCEPTION = "UnSupportAction";
+    private final static String TARGET_EXCEPTION = "UnSupportTarget";
 
     @NotBlank(message = "name can not be blank")
     private String name;
@@ -21,11 +23,11 @@ public class PurgeTaskDTO {
     private List<String> cacheKey;
     
     @NotBlank(message = "action can not be blank")
-    @Pattern(regexp="delete|invalidate", message="The specified active does not exist")
+    @Pattern(regexp="delete|invalidate", message= ACTION_EXCEPTION)
     private String action;
     
     @NotBlank(message = "target can not be blank")
-    @Pattern(regexp="production|staging", message="The specified active does not exist")
+    @Pattern(regexp="production|staging", message= TARGET_EXCEPTION)
     private String target;
 
     public String getName() {

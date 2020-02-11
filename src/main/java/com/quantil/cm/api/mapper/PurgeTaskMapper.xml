@@ -19,12 +19,10 @@
 	           AND commit_time &lt;=  #{enddate}
 	         </if>
     	</where>
-    	 <if test="sortBy != null and sortBy != ''">
-    	 	order by #{sortBy}
-    	 </if>
-    	  <if test="sortOrder != null and sortOrder != ''">
-    	 	#{sortOrder}
-    	 </if>
+    	 
+    	 	order by ${sortBy} ${sortOrder}
+    	 
+    	  
     	 <if test="limit != null and limit != 0">
     	 	limit #{limit}
     	 </if>

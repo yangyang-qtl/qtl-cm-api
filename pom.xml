@@ -4,7 +4,7 @@
 
   <groupId>com.quantil</groupId>
   <artifactId>cm-api</artifactId>
-  <version>0.0.1</version>
+  <version>1.0.1</version>
   <packaging>jar</packaging>
 
   <name>cm-api</name>

@@ -29,12 +29,10 @@ public class RocketmqProducer {
             DefaultMQProducer(producerName);
             producer.setNamesrvAddr(nameServerAddress);
             producer.start();
-            for (int i = 0; i < 100; i++) {
-                Message msg = new Message(TOPIC, tag, (messageBody).getBytes(RemotingHelper.DEFAULT_CHARSET) 
-                );
-                SendResult sendResult = producer.send(msg);
-                logger.info(sendResult.toString());
-            }
+            Message msg = new Message(TOPIC, tag, (messageBody).getBytes(RemotingHelper.DEFAULT_CHARSET) 
+                    );
+                    SendResult sendResult = producer.send(msg);
+                    logger.info(sendResult.toString());
             producer.shutdown();
     }
         

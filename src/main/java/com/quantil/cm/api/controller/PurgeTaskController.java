@@ -76,7 +76,7 @@ public class PurgeTaskController {
      * @return
      */
     @GetMapping
-    public PurgeRequestEntityDTO getPurgeRequest(@RequestParam(value="startdate") String startdate, @RequestParam(value="enddate") String enddate, @RequestParam(value="offset") int offset, @RequestParam(value="limit") int limit, @RequestParam(value="sortBy") String sortBy, @RequestParam(value="sortOrder") String sortOrder)  {
+    public PurgeRequestEntityDTO getPurgeRequest(@RequestParam(value="startdate") String startdate, @RequestParam(value="enddate") String enddate, @RequestParam(value="offset") String offset, @RequestParam(value="limit") String limit, @RequestParam(value="sortBy") String sortBy, @RequestParam(value="sortOrder") String sortOrder)  {
         return purgeTaskService.getPurgeRequest(startdate, enddate, offset, limit, sortBy, sortOrder);
     }
     

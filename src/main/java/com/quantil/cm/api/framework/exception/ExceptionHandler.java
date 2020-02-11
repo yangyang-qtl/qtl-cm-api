@@ -1,5 +1,7 @@
 package com.quantil.cm.api.framework.exception;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import javax.validation.ConstraintViolation;
@@ -33,7 +35,40 @@ import com.quantil.cm.api.framework.util.ExceptionUtil;
 public class ExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ExceptionHandler.class);
+    
+    private final static String ACTIVE_ERROR = "The specified active does not exist";
+    private final static String WRONG_ID = "The specified purgeId does not exist! ";
+    private final static String WRONG_OFFSET = "The offset must be a valid positive integer";
+    private final static String WRONG_LIMIT = "The value of limit should be between 1 and 200";
+    private final static String DATEFROM_INVALID = "Datefrom is invalid";
+    private final static String DATETO_INVALID = "Dateto is invalid";
+    private final static String SORT_INVALID = "The sort field is invalid";
+    private final static String ORDER_INVALID = "The order is invalid";
+    private final static String ACTION_EXCEPTION = "UnSupportAction";
+    private final static String TARGET_EXCEPTION = "UnSupportTarget";
+    private final static String ID_EXCEPTION = "PurgeIdNoFound";
+    private final static String OFFSET_EXCEPTION = "InvalidListOffset";
+    private final static String LIMIT_EXCEPTION = "InvalidListLimit";
+    private final static String FROM_EXCEPTION = "InvalidDateFrom";
+    private final static String TO_EXCEPTION = "InvalidDateTo";
+    private final static String SORT_EXCEPTION = "InvalidSortField";
+    private final static String ORDER_EXCEPTION = "InvalidOrder";
+    
+    private static Map<String, String> EXCEPTIONMAP = new HashMap<String, String> (){
+        private static final long serialVersionUID = 1L;
 
+    {
+        put(ACTION_EXCEPTION, ACTIVE_ERROR);
+        put(TARGET_EXCEPTION, ACTIVE_ERROR);
+        put(ID_EXCEPTION, WRONG_ID);
+        put(OFFSET_EXCEPTION, WRONG_OFFSET);
+        put(LIMIT_EXCEPTION, WRONG_LIMIT);
+        put(FROM_EXCEPTION, DATEFROM_INVALID);
+        put(TO_EXCEPTION, DATETO_INVALID);
+        put(SORT_EXCEPTION, SORT_INVALID);
+        put(ORDER_EXCEPTION, ORDER_INVALID);
+    }};
+    
     @org.springframework.web.bind.annotation.ExceptionHandler(value = Exception.class)
     @ResponseBody
     public ResponseEntity<Object> defaultErrorHandler(Exception e) throws Exception {
@@ -44,8 +79,8 @@ public class ExceptionHandler {
         ResponseEntity<Object> entity = null;
         RespBody respBody = new RespBody();
         if (e instanceof NoHandlerFoundException || e instanceof NoFoundException) {
-            respBody.setCode(Constants.ERROR_404);
-            respBody.setMessage(e.getMessage());
+            respBody.setCode(e.getMessage());
+            respBody.setMessage(EXCEPTIONMAP.get(e.getMessage()));
             entity = new ResponseEntity<>(respBody, headers, HttpStatus.NOT_FOUND);
         } else if (e instanceof JSONException || e instanceof MissingServletRequestParameterException || e instanceof HttpMessageNotReadableException) {
             respBody.setCode(Constants.ERROR_400_BAD_REQUEST);
@@ -66,8 +101,9 @@ public class ExceptionHandler {
                 }
                 sb.append(error.getDefaultMessage()).append(";");
             }
-            respBody.setCode(Constants.ERROR_400_BAD_REQUEST);
-            respBody.setMessage(sb.toString().substring(0, sb.length() - 1));
+            String code = sb.toString().substring(0, sb.length() - 1);
+            respBody.setCode(code);
+            respBody.setMessage(EXCEPTIONMAP.get(code));
             entity = new ResponseEntity<>(respBody, headers, HttpStatus.BAD_REQUEST);
         } else if(e instanceof ConstraintViolationException){
             ConstraintViolationException exception = (ConstraintViolationException) e;
@@ -93,8 +129,8 @@ public class ExceptionHandler {
             respBody.setMessage(e.getMessage());
             entity = new ResponseEntity<>(respBody, headers, HttpStatus.FORBIDDEN);
         } else if (e instanceof BadRequestException) {
-            respBody.setCode(((BadRequestException) e).getCode());
-            respBody.setMessage(e.getMessage());
+            respBody.setCode(e.getMessage());
+            respBody.setMessage(EXCEPTIONMAP.get(e.getMessage()));
             entity = new ResponseEntity<>(respBody, headers, HttpStatus.BAD_REQUEST);
         } else if(e instanceof UnauthorizedException){
             respBody.setCode(Constants.ERROR_401);
